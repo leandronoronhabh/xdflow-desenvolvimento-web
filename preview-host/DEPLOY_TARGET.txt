@@ -1,0 +1,4 @@
+Host: preview.xdflow.xdronesbh.com
+Slug: clinica-performance-a7k4
+Final URL: https://preview.xdflow.xdronesbh.com/clinica-performance-a7k4/
+Canonical baseline: latest Premium/Animated Clínica Performance version from project chat.
