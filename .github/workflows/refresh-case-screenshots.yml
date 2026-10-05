@@ -1,0 +1,108 @@
+name: Refresh XDFLOW case screenshots
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/refresh-case-screenshots.yml"
+      - "refresh-cases.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Capture current public sites
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+
+          const targets = [
+            {
+              name: 'matheus',
+              url: 'https://omatheusaugusto.com.br/',
+            },
+            {
+              name: 'marcelo',
+              url: 'https://marceloazevedo.com.br/',
+            },
+          ];
+
+          async function capture(page, url, path) {
+            await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
+            await page.evaluate(async () => {
+              if (document.fonts?.ready) await document.fonts.ready;
+            });
+            await page.waitForTimeout(1800);
+            await page.screenshot({ path, fullPage: false });
+          }
+
+          (async () => {
+            fs.mkdirSync('desenvolvimento-web/assets', { recursive: true });
+            const browser = await chromium.launch({ headless: true });
+
+            for (const target of targets) {
+              const desktop = await browser.newPage({
+                viewport: { width: 1440, height: 900 },
+                deviceScaleFactor: 1,
+              });
+              await capture(
+                desktop,
+                target.url,
+                `desenvolvimento-web/assets/case-${target.name}-desktop.png`
+              );
+              await desktop.close();
+
+              const mobile = await browser.newPage({
+                viewport: { width: 390, height: 844 },
+                deviceScaleFactor: 1,
+                isMobile: true,
+                hasTouch: true,
+              });
+              await capture(
+                mobile,
+                target.url,
+                `desenvolvimento-web/assets/case-${target.name}-mobile.png`
+              );
+              await mobile.close();
+            }
+
+            await browser.close();
+          })().catch((err) => {
+            console.error(err);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Commit refreshed screenshots
+        run: |
+          git config user.name "XDFLOW Screenshot Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add desenvolvimento-web/assets/case-matheus-desktop.png \
+                  desenvolvimento-web/assets/case-matheus-mobile.png \
+                  desenvolvimento-web/assets/case-marcelo-desktop.png \
+                  desenvolvimento-web/assets/case-marcelo-mobile.png
+          if git diff --cached --quiet; then
+            echo "No screenshot changes."
+          else
+            git commit -m "Refresh Matheus and Marcelo case screenshots"
+            git push
+          fi
