@@ -1,0 +1,28 @@
+name: XDFLOW Emergency Static Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/xdflow-pages-emergency.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload static site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - name: Deploy
+        uses: actions/deploy-pages@v4
